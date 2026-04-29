@@ -1,0 +1,14 @@
+{
+  "name": "my simple blog",
+  "version": "1.0.0",
+  "description": "my blog project",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "dev": "netlify dev",
+    "build": "echo 'No build step required'"
+  },
+  "devDependencies": {
+    "netlify-cli": "latest"
+  }
+}
