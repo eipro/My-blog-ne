@@ -1,69 +1,69 @@
-const _WHk = (Netlify.env.get("\x54\x41\x52\x47\x45\x54\x5f\x44\x4f\x4d\x41\x49\x4e") || "").replace(/\/$/, "");
+const TARGET_BASE = (Netlify.env.get("TARGET_DOMAIN") || "").replace(/\/$/, "");
 
-const _NTHQmyV = new Set([
-  "\x68\x6f\x73\x74",
-  "\x63\x6f\x6e\x6e\x65\x63\x74\x69\x6f\x6e",
-  "\x6b\x65\x65\x70\x2d\x61\x6c\x69\x76\x65",
-  "\x70\x72\x6f\x78\x79\x2d\x61\x75\x74\x68\x65\x6e\x74\x69\x63\x61\x74\x65",
-  "\x70\x72\x6f\x78\x79\x2d\x61\x75\x74\x68\x6f\x72\x69\x7a\x61\x74\x69\x6f\x6e",
-  "\x74\x65",
-  "\x74\x72\x61\x69\x6c\x65\x72",
-  "\x74\x72\x61\x6e\x73\x66\x65\x72\x2d\x65\x6e\x63\x6f\x64\x69\x6e\x67",
-  "\x75\x70\x67\x72\x61\x64\x65",
-  "\x66\x6f\x72\x77\x61\x72\x64\x65\x64",
-  "\x78\x2d\x66\x6f\x72\x77\x61\x72\x64\x65\x64\x2d\x68\x6f\x73\x74",
-  "\x78\x2d\x66\x6f\x72\x77\x61\x72\x64\x65\x64\x2d\x70\x72\x6f\x74\x6f",
-  "\x78\x2d\x66\x6f\x72\x77\x61\x72\x64\x65\x64\x2d\x70\x6f\x72\x74",
+const STRIP_HEADERS = new Set([
+  "host",
+  "connection",
+  "keep-alive",
+  "proxy-authenticate",
+  "proxy-authorization",
+  "te",
+  "trailer",
+  "transfer-encoding",
+  "upgrade",
+  "forwarded",
+  "x-forwarded-host",
+  "x-forwarded-proto",
+  "x-forwarded-port",
 ]);
 
-export default async function fnYmeIRk(request) {
+export default async function handler(request) {
   if (!TARGET_BASE) {
-    return new Response("\x4d\x69\x73\x63\x6f\x6e\x66\x69\x67\x75\x72\x65\x64\x3a\x20\x54\x41\x52\x47\x45\x54\x5f\x44\x4f\x4d\x41\x49\x4e\x20\x69\x73\x20\x6e\x6f\x74\x20\x73\x65\x74", { status: 500 });
+    return new Response("Misconfigured: TARGET_DOMAIN is not set", { status: 500 });
   }
 
   try {
-    const _AjNveFu = new URL(request.url);
-    const _oyWIDSFj = TARGET_BASE + url.pathname + url.search;
+    const url = new URL(request.url);
+    const targetUrl = TARGET_BASE + url.pathname + url.search;
 
-    const _rzEXHy = new Headers();
-    let _ZXvn = null;
+    const headers = new Headers();
+    let clientIp = null;
 
     for (const [key, value] of request.headers) {
-      const _aylgjNT = key.toLowerCase();
+      const k = key.toLowerCase();
       if (STRIP_HEADERS.has(k)) continue;
-      if (k.startsWith("\x78\x2d\x6e\x66\x2d")) continue;
-      if (k.startsWith("\x78\x2d\x6e\x65\x74\x6c\x69\x66\x79\x2d")) continue;
-      if (k === "\x78\x2d\x72\x65\x61\x6c\x2d\x69\x70") {
+      if (k.startsWith("x-nf-")) continue;
+      if (k.startsWith("x-netlify-")) continue;
+      if (k === "x-real-ip") {
         clientIp = value;
         continue;
       }
-      if (k === "\x78\x2d\x66\x6f\x72\x77\x61\x72\x64\x65\x64\x2d\x66\x6f\x72") {
+      if (k === "x-forwarded-for") {
         if (!clientIp) clientIp = value;
         continue;
       }
       headers.set(k, value);
     }
 
-    if (clientIp) headers.set("\x78\x2d\x66\x6f\x72\x77\x61\x72\x64\x65\x64\x2d\x66\x6f\x72", clientIp);
+    if (clientIp) headers.set("x-forwarded-for", clientIp);
 
-    const _euDaWm = request.method;
-    const _lTBKp = method !== "\x47\x45\x54" && method !== "\x48\x45\x41\x44";
+    const method = request.method;
+    const hasBody = method !== "GET" && method !== "HEAD";
 
-    const _rIIpC = {
+    const fetchOptions = {
       method,
       headers,
-      redirect: "\x6d\x61\x6e\x75\x61\x6c",
+      redirect: "manual",
     };
 
     if (hasBody) {
       fetchOptions.body = request.body;
     }
 
-    const _CvebY = await fetch(targetUrl, fetchOptions);
+    const upstream = await fetch(targetUrl, fetchOptions);
 
-    const _aXMYlg = new Headers();
+    const responseHeaders = new Headers();
     for (const [key, value] of upstream.headers) {
-      if (key.toLowerCase() === "\x74\x72\x61\x6e\x73\x66\x65\x72\x2d\x65\x6e\x63\x6f\x64\x69\x6e\x67") continue;
+      if (key.toLowerCase() === "transfer-encoding") continue;
       responseHeaders.set(key, value);
     }
 
@@ -72,6 +72,6 @@ export default async function fnYmeIRk(request) {
       headers: responseHeaders,
     });
   } catch (error) {
-    return new Response("\x42\x61\x64\x20\x47\x61\x74\x65\x77\x61\x79\x3a\x20\x52\x65\x6c\x61\x79\x20\x46\x61\x69\x6c\x65\x64", { status: 502 });
+    return new Response("Bad Gateway: Relay Failed", { status: 502 });
   }
 }
